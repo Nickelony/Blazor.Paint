@@ -1,0 +1,8 @@
+﻿<ImageProcessor @ref="imageProcessor" />
+
+<div style="position: relative; display: @(IsVisible ? "inherit" : "none"); opacity: @((Opacity / 100.0).ToString().Replace(',', '.'))">
+	<BlazorCanvas @ref="DrawingCanvas" width="@CanvasSize.Width" height="@CanvasSize.Height" style="position: absolute;" />
+
+	@{ string actionCanvasStyle = $"position: absolute; opacity: {brushOpacity.ToString().Replace(',', '.')};"; }
+	<BlazorCanvas @ref="actionPreviewCanvas" width="@CanvasSize.Width" height="@CanvasSize.Height" style="@actionCanvasStyle" />
+</div>

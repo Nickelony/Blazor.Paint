@@ -1,0 +1,30 @@
+﻿<div class="screenDarkeningCover">
+	<div class="dialogWindow">
+		<div class="titleBar">
+			@Title
+
+			@if (ShowCloseButton)
+			{
+				<button class="closeButton" @onclick="Close">
+					<span class="oi oi-x" />
+				</button>
+			}
+		</div>
+
+		<div class="contentBox">
+			@MainContent
+
+			@if (!string.IsNullOrWhiteSpace(ErrorMessage))
+			{
+				<br />
+				<span class="errorText">@ErrorMessage</span>
+			}
+		</div>
+
+		<div class="buttonsFragment">
+			<div class="buttonSpan">
+				@ButtonsFragment
+			</div>
+		</div>
+	</div>
+</div>

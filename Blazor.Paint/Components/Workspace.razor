@@ -1,0 +1,46 @@
+﻿<div @ref="rootDiv" id="workspace" class="fullPage" style="position: relative; cursor: @(CursorStyle);" @onmouseover="UpdateBoundsAsync" @onmouseout="ClearCursorAsync" oncontextmenu="return false;">
+	<div class="centeringContainer" style="position: absolute;">
+		@if (LayerInfos.Count > 0)
+		{
+			<div class="centeringItem" style="padding: 30px;">
+				<div @ref="editingAreaDiv" class="editingArea @(Document.IsTransparentBackground ? "transparentBackground" : "")"
+					 style="width: @(CanvasSize.Width)px;
+							height: @(CanvasSize.Height)px;
+							pointer-events: none;">
+					@{
+						int i = 0;
+
+						foreach (LayerInfo layerInfo in LayerInfos.Reverse<LayerInfo>())
+						{
+							<div class="layer">
+								<Layer @key="layerInfo.ComponentKey"
+									   @ref="LayerReferenceWrapper"
+									   LayerInfo="layerInfo"
+									   ZIndex="i" />
+							</div>
+
+							i++;
+						}
+					}
+
+					<div class="layer" style="pointer-events: none; z-index: @LayerInfos.Count">
+						<BlazorCanvas @ref="selectionPreviewCanvas" width="@CanvasSize.Width" height="@CanvasSize.Height" />
+					</div>
+				</div>
+
+				<ImageProcessor @ref="imageProcessor" />
+			</div>
+		}
+	</div>
+
+	<BlazorCanvas style="position: absolute; pointer-events: none;" @ref="transformationAnchorsCanvas"
+			width="@Bounds.Width"
+			height="@Bounds.Height" />
+
+	<BlazorCanvas style="position: absolute;" @ref="cursorCanvas"
+			width="@Bounds.Width"
+			height="@Bounds.Height"
+			@onmousedown="EditingArea_MouseDownAsync"
+			@onmousemove="EditingArea_MouseMoveAsync"
+			@onmouseup="EditingArea_MouseUpAsync" />
+</div>

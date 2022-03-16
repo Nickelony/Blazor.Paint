@@ -1,0 +1,659 @@
+﻿<main @ref="MainElement" tabindex="0" @onclick="CloseAllMenus" @onkeydown="OnKeyDownAsync" @onkeyup="OnKeyUp">
+	<!---------------------->
+	<!---- Top menu bar ---->
+	<!---------------------->
+	<FluentToolbar class="menuBar">
+		<FluentButton id="fileMenu"
+					  Appearance="isFileMenuVisible ? Appearance.Neutral : Appearance.Stealth"
+					  @onclick="async () => await ToggleMenuAsync(MenuType.File)">
+			<span>File</span>
+		</FluentButton>
+
+		<FluentButton id="editMenu"
+					  Appearance="isEditMenuVisible ? Appearance.Neutral : Appearance.Stealth"
+					  Disabled="workspace is null"
+					  @onclick="async () => await ToggleMenuAsync(MenuType.Edit)">
+			<span>Edit</span>
+		</FluentButton>
+
+		<FluentButton id="selectMenu"
+					  Appearance="isSelectMenuVisible ? Appearance.Neutral : Appearance.Stealth"
+					  Disabled="workspace is null"
+					  @onclick="async () => await ToggleMenuAsync(MenuType.Select)">
+			<span>Select</span>
+		</FluentButton>
+
+		<FluentButton id="documentMenu"
+					  Appearance="isDocumentMenuVisible ? Appearance.Neutral : Appearance.Stealth"
+					  Disabled="workspace is null"
+					  @onclick="async () => await ToggleMenuAsync(MenuType.Document)">
+			<span>Document</span>
+		</FluentButton>
+
+		<FluentButton id="layerMenu"
+					  Appearance="isLayerMenuVisible ? Appearance.Neutral : Appearance.Stealth"
+					  Disabled="workspace is null"
+					  @onclick="async () => await ToggleMenuAsync(MenuType.Layer)">
+			<span>Layer</span>
+		</FluentButton>
+	</FluentToolbar>
+
+	@if (workspace is not null)
+	{
+		<!----------------------->
+		<!---- Left tool bar ---->
+		<!----------------------->
+		<FluentToolbar class="toolBar" Orientation="Orientation.Vertical">
+			<FluentButton class="toolBarButton"
+						  Appearance="workspace.ActiveTool == ToolType.Transform ? Appearance.Accent : Appearance.Neutral"
+						  @onclick="async () => await SetToolTypeAsync(ToolType.Transform)">
+				<img src="resources/cursor.png" alt="Move" />
+			</FluentButton>
+
+			<FluentButton class="toolBarButton"
+						  Appearance="workspace.ActiveTool == ToolType.BoxSelection ? Appearance.Accent : Appearance.Neutral"
+						  @onclick="async () => await SetToolTypeAsync(ToolType.BoxSelection)">
+				<img src="resources/select.png" alt="Select" />
+			</FluentButton>
+
+			<FluentButton class="toolBarButton"
+						  Appearance="workspace.ActiveTool == ToolType.Brush ? Appearance.Accent : Appearance.Neutral"
+						  @onclick="async () => await SetToolTypeAsync(ToolType.Brush)">
+				<img src="resources/brush.png" alt="Brush"/>
+			</FluentButton>
+
+			<FluentButton class="toolBarButton"
+						  Appearance="workspace.ActiveTool == ToolType.Eraser ? Appearance.Accent : Appearance.Neutral"
+						  @onclick="async () => await SetToolTypeAsync(ToolType.Eraser)">
+				<img src="resources/eraser.png" alt="Eraser"/>
+			</FluentButton>
+
+			<FluentButton class="toolBarButton"
+						  Appearance="workspace.ActiveTool == ToolType.PaintBucket ? Appearance.Accent : Appearance.Neutral"
+						  @onclick="async () => await SetToolTypeAsync(ToolType.PaintBucket)">
+				<img src="resources/bucket.png" alt="Bucket" />
+			</FluentButton>
+
+			<FluentButton class="toolBarButton"
+						  Appearance="workspace.ActiveTool == ToolType.Line ? Appearance.Accent : Appearance.Neutral"
+						  @onclick="async () => await SetToolTypeAsync(ToolType.Line)">
+				<img src="resources/line.png" alt="Line" />
+			</FluentButton>
+
+			<FluentButton class="toolBarButton"
+						  Appearance="workspace.ActiveTool == ToolType.Rectangle ? Appearance.Accent : Appearance.Neutral"
+						  @onclick="async () => await SetToolTypeAsync(ToolType.Rectangle)">
+				<img src="resources/rectangle.png" alt="Rectangle" />
+			</FluentButton>
+
+			<FluentButton class="toolBarButton"
+						  Appearance="workspace.ActiveTool == ToolType.Ellipse ? Appearance.Accent : Appearance.Neutral"
+						  @onclick="async () => await SetToolTypeAsync(ToolType.Ellipse)">
+				<img src="resources/ellipse.png" alt="Ellipse" />
+			</FluentButton>
+
+			<div class="colorSelectContainer">
+				<input type="color" class="secondaryColor" @bind-value="workspace.SecondaryColor" />
+				<input type="color" class="primaryColor" @bind-value="workspace.PrimaryColor" />
+			</div>
+		</FluentToolbar>
+
+		<!------------------------------->
+		<!---- Top tool property bar ---->
+		<!------------------------------->
+		<FluentToolbar class="propertiesBar">
+			@switch(workspace.ActiveTool)
+			{
+				case ToolType.Transform:
+				case ToolType.BoxSelection:
+					<span style="margin-left: 10px">
+						Position: (@(workspace.Selection.X), @(workspace.Selection.Y))
+					</span>
+
+					<span style="margin-left: 10px">
+						Size: (@(workspace.Selection.Width)px, @(workspace.Selection.Height)px)
+					</span>
+
+					break;
+
+				case ToolType.Brush:
+				case ToolType.Eraser:
+				case ToolType.Line:
+				case ToolType.Rectangle:
+				case ToolType.Ellipse:
+					<span style="margin-left: 10px">
+						Width:
+					</span>
+
+					<FluentSlider style="width: 160px; margin-top: 16px;"
+								  Min="1" Max="100"
+								  @bind-Value="workspace.StrokeWidth" />
+
+					<FluentNumberField style="width: 80px;"
+									   TValue="int" Min="1" Max="4096"
+									   @bind-Value="workspace.StrokeWidth" />
+
+					break;
+			}
+
+			@switch(workspace.ActiveTool)
+			{
+				case ToolType.Brush:
+				case ToolType.Line:
+				case ToolType.Rectangle:
+				case ToolType.Ellipse:
+					<span style="margin-left: 10px">
+						Opacity:
+					</span>
+
+					<FluentSlider style="width: 160px; margin-top: 16px;"
+								  Min="0" Max="100"
+								  @bind-Value="workspace.BrushOpacity" />
+
+					<FluentNumberField style="width: 80px;"
+									   TValue="int" Min="0" Max="100"
+									   @bind-Value="workspace.BrushOpacity" />
+
+					break;
+			}
+
+			@switch(workspace.ActiveTool)
+			{
+				case ToolType.Line:
+					<FluentRadioGroup style="margin-left: 20px;" @bind-Value="LineCapString">
+						<FluentRadio Value="Butt">Butt</FluentRadio>
+						<FluentRadio Value="Round">Round</FluentRadio>
+						<FluentRadio Value="Square">Square</FluentRadio>
+					</FluentRadioGroup>
+
+					break;
+
+				case ToolType.Rectangle:
+					<FluentRadioGroup style="margin-left: 20px;" @bind-Value="DrawingModeString">
+						<FluentRadio Value="Stroke">Stroke</FluentRadio>
+						<FluentRadio Value="Fill">Fill</FluentRadio>
+						<FluentRadio Value="Both">Both</FluentRadio>
+					</FluentRadioGroup>
+
+					break;
+
+				case ToolType.Ellipse:
+					<FluentRadioGroup style="margin-left: 20px;" @bind-Value="DrawingModeString">
+						<FluentRadio Value="Stroke">Stroke</FluentRadio>
+						<FluentRadio Value="Fill">Fill</FluentRadio>
+						<FluentRadio Value="Both">Both</FluentRadio>
+					</FluentRadioGroup>
+
+					break;
+			}
+		</FluentToolbar>
+
+		<div class="rightSection">
+			<!---------------------------->
+			<!---- Right layers panel ---->
+			<!---------------------------->
+			<div class="layersSection">
+				<div class="rightSection-titleBar">
+					<span>Layers</span>
+				</div>
+
+				<FluentToolbar class="layersToolBar">
+					<FluentButton class="layersToolBarButton" Appearance="Appearance.Neutral"
+								  @onclick="async () => await ExecuteCommandAsync(EditorCommand.NewLayer)">
+						<span class="oi oi-plus" />
+					</FluentButton>
+
+					<FluentButton class="layersToolBarButton" Appearance="Appearance.Neutral"
+								  Disabled="workspace.ActiveLayerInfos.Count() < 1 || workspace.LayerInfos.Count < 2 || workspace.ActiveLayerInfos.Count() == workspace.LayerInfos.Count"
+								  @onclick="async () => await ExecuteCommandAsync(EditorCommand.RemoveLayer)">
+						<span class="oi oi-trash" />
+					</FluentButton>
+
+					<FluentButton class="layersToolBarButton" Appearance="Appearance.Neutral"
+								  Disabled="workspace.ActiveLayerInfos.Count() != 1"
+								  @onclick="BeginRenameLayer">
+						<span class="oi oi-pencil" />
+					</FluentButton>
+
+					<FluentButton class="layersToolBarButton" Appearance="Appearance.Neutral"
+								  Disabled="workspace.ActiveLayerInfos.Count() != 1 || workspace.LayerInfos.Count < 2"
+						  		  @onclick="async () => await ExecuteCommandAsync(EditorCommand.MoveLayerUp)">
+						<span class="oi oi-arrow-top" />
+					</FluentButton>
+
+					<FluentButton class="layersToolBarButton" Appearance="Appearance.Neutral"
+								  Disabled="workspace.ActiveLayerInfos.Count() != 1 || workspace.LayerInfos.Count < 2"
+								  @onclick="async () => await ExecuteCommandAsync(EditorCommand.MoveLayerDown)">
+						<span class="oi oi-arrow-bottom" />
+					</FluentButton>
+				</FluentToolbar>
+
+				<FluentToolbar class="layerSliderSection">
+					<FluentSlider style="width: 124px; margin-top: 20px;"
+								  Min="0" Max="100"
+								  Disabled="workspace.ActiveLayerInfos.Count() != 1"
+								  @bind-Value="workspace.ActiveLayerOpacity" />
+
+					<FluentNumberField style="width: 80px;"
+									   TValue="int" Min="0" Max="100"
+									   Disabled="workspace.ActiveLayerInfos.Count() != 1"
+									   @bind-Value="workspace.ActiveLayerOpacity" />
+				</FluentToolbar>
+
+				<FluentTreeView class="layersTreeView" CurrentSelectedChanged="SelectedLayerChanged">
+					@foreach (LayerInfo layerInfo in workspace.LayerInfos)
+					{
+						bool isSelected = workspace.ActiveLayerInfos.Any(li => li.LayerId == layerInfo.LayerId);
+
+						<FluentTreeItem @key="layerInfo.LayerId"
+										@onmouseup="async (e) => await TryOpenLayerItemContextMenu(e, layerInfo.LayerId)"
+										oncontextmenu="return false;"
+										layerId="@layerInfo.LayerId">
+
+							<div class="@(isSelected ? "selectedLayer" : "")" style="pointer-events: none;">
+								<FluentCheckbox @bind-Value="layerInfo.IsVisible" style="margin-right: 10px; pointer-events: all;" /><span style="pointer-events: none; user-select: none">@layerInfo.Name</span>
+							</div>
+						</FluentTreeItem>
+					}
+				</FluentTreeView>
+			</div>
+
+			<!----------------------------->
+			<!---- Right history panel ---->
+			<!----------------------------->
+			<div class="historySection">
+				<div class="rightSection-titleBar">
+					<span>History</span>
+				</div>
+				<FluentTreeView class="historyTreeView" OnSelectedChange="SelectedActionChanged">
+					@for (int i = 0; i < workspace.UndoStack.Count; i++)
+					{
+						WorkspaceAction action = workspace.UndoStack[i];
+
+						<FluentTreeItem @key="Guid.NewGuid()"
+										actionType="Undo"
+										stepCount="@(workspace.UndoStack.Count - 1 - i)">
+							<span style="pointer-events: none;">@action.Label</span>
+						</FluentTreeItem>
+					}
+
+					@for (int i = workspace.RedoStack.Count - 1; i >= 0; i--)
+					{
+						WorkspaceAction action = workspace.RedoStack[i];
+
+						<FluentTreeItem @key="Guid.NewGuid()"
+										actionType="Redo"
+										stepCount="@(workspace.RedoStack.Count - i)">
+							<span style="pointer-events: none; color: lightgray">@action.Label</span>
+						</FluentTreeItem>
+					}
+				</FluentTreeView>
+			</div>
+		</div>
+	}
+	
+	<!------------------------>
+	<!---- Main workspace ---->
+	<!------------------------>
+	@if (currentDocument is not null)
+	{
+		<div class="workspace">
+			<Workspace Document="@currentDocument" @ref="workspace" @key="currentDocument.Id" />
+		</div>
+	}	
+</main>
+
+<!---------------------------------------------->
+<!---------------- Menu pop-ups ---------------->
+<!---------------------------------------------->
+@if (isFileMenuVisible)
+{
+	<FluentAnchoredRegion Anchor="fileMenu"
+						  HorizontalPositioningMode="AxisPositioningMode.Dynamic"
+						  VerticalPositioningMode="AxisPositioningMode.Dynamic"
+						  HorizontalDefaultPosition="HorizontalPosition.End"
+						  VerticalDefaultPosition="VerticalPosition.Bottom"
+						  HorizontalInset="true">
+		<FluentMenu>
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.New)">
+				<span>New...</span>
+			</FluentMenuItem>
+
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.Open)">
+				<span>Open...</span>
+			</FluentMenuItem>
+
+			<FluentDivider />
+
+			<FluentMenuItem Disabled="workspace is null" @onclick="BeginSaveAs">
+				<span>Save As...</span>
+			</FluentMenuItem>
+
+			<FluentDivider />
+
+			<FluentMenuItem Disabled="workspace is null" @onclick="BeginExport">
+				<span>Export As...</span>
+			</FluentMenuItem>
+
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.Import)">
+				<span>Import...</span>
+			</FluentMenuItem>
+		</FluentMenu>
+	</FluentAnchoredRegion>
+}
+	
+@if (isEditMenuVisible)
+{
+	<FluentAnchoredRegion Anchor="editMenu"
+						  HorizontalPositioningMode="AxisPositioningMode.Dynamic"
+						  VerticalPositioningMode="AxisPositioningMode.Dynamic"
+						  HorizontalDefaultPosition="HorizontalPosition.End"
+						  VerticalDefaultPosition="VerticalPosition.Bottom"
+						  HorizontalInset="true">
+		<FluentMenu>
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.Undo)">
+				<span>Undo</span>
+			</FluentMenuItem>
+
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.Redo)">
+				<span>Redo</span>
+			</FluentMenuItem>
+
+			<FluentDivider />
+
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.Cut)">
+				<span>Cut</span>
+			</FluentMenuItem>
+
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.Copy)">
+				<span>Copy</span>
+			</FluentMenuItem>
+
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.Paste)">
+				<span>Paste</span>
+			</FluentMenuItem>
+		</FluentMenu>
+	</FluentAnchoredRegion>
+}
+
+@if (isSelectMenuVisible)
+{
+	<FluentAnchoredRegion Anchor="selectMenu"
+						  HorizontalPositioningMode="AxisPositioningMode.Dynamic"
+						  VerticalPositioningMode="AxisPositioningMode.Dynamic"
+						  HorizontalDefaultPosition="HorizontalPosition.End"
+						  VerticalDefaultPosition="VerticalPosition.Bottom"
+						  HorizontalInset="true">
+		<FluentMenu>
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.SelectAll)">
+				<span>Select All</span>
+			</FluentMenuItem>
+
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.ClearSelection)">
+				<span>Clear Selection</span>
+			</FluentMenuItem>
+		</FluentMenu>
+	</FluentAnchoredRegion>
+}
+	
+@if (isDocumentMenuVisible)
+{
+	<FluentAnchoredRegion Anchor="documentMenu"
+						  HorizontalPositioningMode="AxisPositioningMode.Dynamic"
+						  VerticalPositioningMode="AxisPositioningMode.Dynamic"
+						  HorizontalDefaultPosition="HorizontalPosition.End"
+						  VerticalDefaultPosition="VerticalPosition.Bottom"
+						  HorizontalInset="true">
+		<FluentMenu>
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.ResizeDocument)">
+				<span>Resize Document...</span>
+			</FluentMenuItem>
+
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.ResizeCanvas)">
+				<span>Resize Canvas...</span>
+			</FluentMenuItem>
+
+			<FluentDivider />
+
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.ToggleTransparency)">
+				<span>Toggle Transparency</span>
+			</FluentMenuItem>
+		</FluentMenu>
+	</FluentAnchoredRegion>
+}
+	
+@if (isLayerMenuVisible)
+{
+	<FluentAnchoredRegion Anchor="layerMenu"
+						  HorizontalPositioningMode="AxisPositioningMode.Dynamic"
+						  VerticalPositioningMode="AxisPositioningMode.Dynamic"
+						  HorizontalDefaultPosition="HorizontalPosition.End"
+						  VerticalDefaultPosition="VerticalPosition.Bottom"
+						  HorizontalInset="true">
+		<FluentMenu>
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.NewLayer)">
+				<span>New Layer</span>
+			</FluentMenuItem>
+
+			<FluentMenuItem @onclick="async () => await ExecuteCommandAsync(EditorCommand.NewFillLayer)">
+				<span>New Fill Layer</span>
+			</FluentMenuItem>
+		</FluentMenu>
+	</FluentAnchoredRegion>
+}
+
+<!---------------------------------------------->
+<!---------------------------------------------->
+<!---------------------------------------------->
+
+@if (workspace is null)
+	return;
+
+<!---------------------------------------------->
+<!---------------------------------------------->
+<!---------------------------------------------->
+
+@if (isLayerItemContextMenuVisible)
+{
+	<FluentMenu style="@layerContextMenuStyle" oncontextmenu="return false;">
+		<FluentMenuItem Disabled="workspace.ActiveLayerInfos.Count() < 1 || workspace.LayerInfos.Count < 2 || workspace.ActiveLayerInfos.Count() == workspace.LayerInfos.Count" @onclick="async () => await ExecuteCommandAsync(EditorCommand.RemoveLayer)">
+			<span>Remove Layer(s)...</span>
+		</FluentMenuItem>
+
+		<FluentMenuItem Disabled="workspace.ActiveLayerInfos.Count() != 1" @onclick="BeginRenameLayer">
+			<span>Rename Layer...</span>
+		</FluentMenuItem>
+
+		<FluentDivider />
+
+		<FluentMenuItem Disabled="workspace.ActiveLayerInfos.Count() != 1 || workspace.LayerInfos.Count < 2" @onclick="async () => await ExecuteCommandAsync(EditorCommand.MoveLayerUp)">
+			<span>Move Layer Up...</span>
+		</FluentMenuItem>
+
+		<FluentMenuItem Disabled="workspace.ActiveLayerInfos.Count() != 1 || workspace.LayerInfos.Count < 2" @onclick="async () => await ExecuteCommandAsync(EditorCommand.MoveLayerDown)">
+			<span>Move Layer Down...</span>
+		</FluentMenuItem>
+
+		<FluentDivider />
+
+		<FluentMenuItem Disabled="workspace.ActiveLayerInfos.Count() < 2" @onclick="async () => await ExecuteCommandAsync(EditorCommand.MergeSelectedLayers)">
+			<span>Merge Layers...</span>
+		</FluentMenuItem>
+	</FluentMenu>
+}
+
+<!----------------------------------------------->
+<!---------------- Modal dialogs ---------------->
+<!----------------------------------------------->
+@if (isNewMode)
+{
+	<ModalDialog Title="New..." OnClose="() => isNewMode = false">
+		<MainContent>
+			<span class="mb-2">Canvas size:</span>
+			<br />
+
+			<FluentNumberField TValue="int" Min="1" @bind-Value="cachedWidth" style="width: 150px" />
+			<img src="resources/multiply.png" style="margin-bottom: 16px;" />
+			<FluentNumberField TValue="int" Min="1" @bind-Value="cachedHeight" style="width: 150px" />
+			<br />
+
+			<FluentCheckbox @bind-Value="cachedIsTransparentBackground">Transparent Background</FluentCheckbox>
+		</MainContent>
+		<ButtonsFragment>
+			<button class="btn btn-danger" @onclick="CancelAll">Cancel</button>
+			<button class="btn btn-success" @onclick="CreateNewWorkspace">Create</button>
+		</ButtonsFragment>
+	</ModalDialog>
+}
+
+@if (isResizeDocumentMode)
+{
+	<ModalDialog Title="Resize Document" OnClose="() => isResizeDocumentMode = false">
+		<MainContent>
+			<span class="mb-2">Image size:</span>
+			<br />
+
+			<FluentNumberField TValue="int" Min="1" @bind-Value="cachedWidth" style="width: 150px" />
+			<img src="resources/multiply.png" style="margin-bottom: 16px;" />
+			<FluentNumberField TValue="int" Min="1" @bind-Value="cachedHeight" style="width: 150px" />
+		</MainContent>
+		<ButtonsFragment>
+			<button class="btn btn-danger" @onclick="CancelAll">Cancel</button>
+			<button class="btn btn-success" @onclick="ResizeDocumentAsync">Apply</button>
+		</ButtonsFragment>
+	</ModalDialog>
+}
+
+@if (isResizeCanvasMode)
+{
+	<ModalDialog Title="Resize Canvas" OnClose="() => isResizeCanvasMode = false">
+		<MainContent>
+			<span class="mb-2">Canvas size:</span>
+			<br />
+
+			<FluentNumberField TValue="int" Min="1" @bind-Value="cachedWidth" style="width: 150px" />
+			<img src="resources/multiply.png" style="margin-bottom: 16px;" />
+			<FluentNumberField TValue="int" Min="1" @bind-Value="cachedHeight" style="width: 150px" />
+			<br />
+
+			<span class="mb-2">Anchor:</span>	
+			<br />
+
+			<div class="centeringContainer">
+				<div class="centeringItem">
+					<FluentButton class="anchorSelectionButton"
+								  Appearance="cachedCanvasPlacement == CanvasAnchor.TopLeft ? Appearance.Accent : Appearance.Outline"
+								  @onclick="() => cachedCanvasPlacement = CanvasAnchor.TopLeft">
+						<img src="resources/up-left-arrow.png" />
+					</FluentButton>
+					<FluentButton class="anchorSelectionButton"
+								  Appearance="cachedCanvasPlacement == CanvasAnchor.TopCenter ? Appearance.Accent : Appearance.Outline"
+								  @onclick="() => cachedCanvasPlacement = CanvasAnchor.TopCenter">
+						<img src="resources/up-arrow.png" />
+					</FluentButton>
+					<FluentButton class="anchorSelectionButton"
+								  Appearance="cachedCanvasPlacement == CanvasAnchor.TopRight ? Appearance.Accent : Appearance.Outline"
+								  @onclick="() => cachedCanvasPlacement = CanvasAnchor.TopRight">
+						<img src="resources/up-right-arrow.png" />
+					</FluentButton>
+
+					<br />
+
+					<FluentButton class="anchorSelectionButton"
+								  Appearance="cachedCanvasPlacement == CanvasAnchor.MiddleLeft ? Appearance.Accent : Appearance.Outline"
+								  @onclick="() => cachedCanvasPlacement = CanvasAnchor.MiddleLeft">
+						<img src="resources/left-arrow.png" />
+					</FluentButton>
+					<FluentButton class="anchorSelectionButton"
+								  Appearance="cachedCanvasPlacement == CanvasAnchor.MiddleCenter ? Appearance.Accent : Appearance.Outline"
+								  @onclick="() => cachedCanvasPlacement = CanvasAnchor.MiddleCenter" />
+					<FluentButton class="anchorSelectionButton"
+								  Appearance="cachedCanvasPlacement == CanvasAnchor.MiddleRight ? Appearance.Accent : Appearance.Outline"
+								  @onclick="() => cachedCanvasPlacement = CanvasAnchor.MiddleRight">
+						<img src="resources/right-arrow.png" />
+					</FluentButton>
+
+					<br />
+
+					<FluentButton class="anchorSelectionButton"
+								  Appearance="cachedCanvasPlacement == CanvasAnchor.BottomLeft ? Appearance.Accent : Appearance.Outline"
+								  @onclick="() => cachedCanvasPlacement = CanvasAnchor.BottomLeft">
+						<img src="resources/down-left-arrow.png" />
+					</FluentButton>
+					<FluentButton class="anchorSelectionButton"
+								  Appearance="cachedCanvasPlacement == CanvasAnchor.BottomCenter ? Appearance.Accent : Appearance.Outline"
+								  @onclick="() => cachedCanvasPlacement = CanvasAnchor.BottomCenter">
+						<img src="resources/down-arrow.png" />
+					</FluentButton>
+					<FluentButton class="anchorSelectionButton"
+								  Appearance="cachedCanvasPlacement == CanvasAnchor.BottomRight ? Appearance.Accent : Appearance.Outline"
+								  @onclick="() => cachedCanvasPlacement = CanvasAnchor.BottomRight">
+						<img src="resources/down-right-arrow.png" />
+					</FluentButton>
+				</div>
+			</div>
+		</MainContent>
+		<ButtonsFragment>
+			<button class="btn btn-danger" @onclick="CancelAll">Cancel</button>
+			<button class="btn btn-success" @onclick="ResizeCanvasAsync">Apply</button>
+		</ButtonsFragment>
+	</ModalDialog>
+}
+
+@if (isRenameLayerMode)
+{
+	<ModalDialog Title="Rename Layer..." OnClose="() => isRenameLayerMode = false">
+		<MainContent>
+			<label for="layerName">Name:</label>
+			<br />
+
+			<FluentTextField id="layerName" style="width: 350px" @bind-Value="cachedLayerName" />
+		</MainContent>
+		<ButtonsFragment>
+			<button class="btn btn-danger" @onclick="CancelAll">Cancel</button>
+			<button class="btn btn-success" @onclick="ApplyLayerRenameAsync">Rename</button>
+		</ButtonsFragment>
+	</ModalDialog>
+}
+
+@if (isSaveAsMode)
+{
+	<ModalDialog Title="Save As..." OnClose="() => isSaveAsMode = false">
+		<MainContent>
+			<label for="saveAsName">File name:</label>
+			<br />
+
+			<FluentTextField id="saveAsName" style="width: 350px" @bind-Value="_tempFileName" />
+		</MainContent>
+		<ButtonsFragment>
+			<button class="btn btn-danger" @onclick="CancelAll">Cancel</button>
+			<button class="btn btn-success" @onclick="async () => await ExecuteCommandAsync(EditorCommand.SaveAs)">Save</button>
+		</ButtonsFragment>
+	</ModalDialog>
+}
+
+@if (isExportAsMode)
+{
+	<ModalDialog Title="Export As..." OnClose="() => isExportAsMode = false">
+		<MainContent>
+			<label for="exportName">File name:</label>
+			<br />
+
+			<FluentTextField id="exportName" style="width: 350px" @bind-Value="_tempFileName" />
+			<br /><br />
+
+			<label for="exportFormat">File format:</label>
+			<br />
+
+			<FluentSelect id="exportFormat" style="width: 350px" TValue="FileFormat" @bind-Value="_tempFileFormat">
+				<FluentOption Value="FileFormat.PNG">.png</FluentOption>
+				<FluentOption Value="FileFormat.JPEG">.jfif (JPEG)</FluentOption>
+				<FluentOption Value="FileFormat.WEBP">.webp</FluentOption>
+			</FluentSelect>
+		</MainContent>
+		<ButtonsFragment>
+			<button class="btn btn-danger" @onclick="CancelAll">Cancel</button>
+			<button class="btn btn-success" @onclick="async () => await ExecuteCommandAsync(EditorCommand.ExportAs)">Export</button>
+		</ButtonsFragment>
+	</ModalDialog>
+}

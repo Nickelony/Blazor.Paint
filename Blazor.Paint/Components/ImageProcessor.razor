@@ -1,0 +1,82 @@
+﻿@using System.Drawing
+@using Blazor.Canvas.Extensions
+
+<div style="display: none">
+	<img id="@imgId" src="@imgSrc" />
+	<BlazorCanvas @ref="canvasElement" width="@canvasSize.Width" height="@canvasSize.Height" />
+</div>
+
+@code {
+	[Inject] protected IJSRuntime JS { get; set; } = null!;
+
+	private string imgId = Guid.NewGuid().ToString();
+	private string imgSrc = string.Empty;
+
+	private BlazorCanvas? canvasElement;
+	private Context2D? canvasContext;
+	private Size canvasSize;
+
+	/// <summary>
+	/// Returns an <c>&lt;img&gt;</c> element reference where <c>src="..."</c> is set to the given URL.
+	/// <para><b>Note:</b> This method can only be run <u>asynchronously</u>, otherwise the returned data may be incomplete.</para>
+	/// </summary>
+	public async ValueTask<string> UrlToImgElementAsync(string url)
+	{
+		imgSrc = url;
+		StateHasChanged();
+
+		string variableName = "img_" + Guid.NewGuid().ToString().Replace('-', '_');
+		await JS.InvokeVoidAsync("eval", $"{variableName} = document.getElementById('{imgId}')");
+
+		return variableName;
+	}
+
+	/// <summary>
+	/// Returns a URL string for the given <see cref="ImageData" />.
+	/// <para><b>Note:</b> This method can only be run <u>asynchronously</u>, otherwise the returned data may be incomplete.</para>
+	/// </summary>
+	public async ValueTask<string> ImageDataToUrlAsync(ImageData data)
+	{
+		canvasSize = new Size((int)data.Width, (int)data.Height);
+		StateHasChanged();
+
+		canvasContext ??= await canvasElement!.GetContext2DAsync();
+		await canvasContext.ClearAllAsync();
+		await canvasContext.PutImageDataAsync(data, 0, 0);
+
+		return await canvasElement!.ToDataURLAsync();
+	}
+
+	public async ValueTask<string> FlattenLayersToUrlAsync(IEnumerable<Layer> layers, Size canvasSize, bool isTransparentBackground = true, FileFormat format = FileFormat.PNG)
+	{
+		this.canvasSize = canvasSize;
+		StateHasChanged();
+
+		canvasContext ??= await canvasElement!.GetContext2DAsync();
+		await canvasContext.ClearAllAsync();
+
+		if (!isTransparentBackground || format == FileFormat.JPEG)
+		{
+			await canvasContext.FillStyleAsync("white");
+			await canvasContext.FillAllAsync();
+		}
+
+		foreach (Layer layer in layers)
+		{
+			if (!layer.IsValidForEditing)
+				continue;
+
+			await canvasContext.SaveAsync();
+			await canvasContext.GlobalAlphaAsync(layer.Opacity / 100.0);
+
+			string url = await layer.DrawingCanvas!.ToDataURLAsync();
+			string variableName = await UrlToImgElementAsync(url);
+			await canvasContext.DrawImageAsync(variableName, 0, 0);
+
+			await canvasContext.RestoreAsync();
+
+		}
+
+		return await canvasElement!.ToDataURLAsync($"image/{Enum.GetName(format)!.ToLower()}");
+	}
+}
